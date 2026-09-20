@@ -18,6 +18,15 @@
 #define DBG_INFO   3 
 #define DBG_TRACE  4
 
+/*let program read and change the mask and level at runtime*/
+#define DBGCTL_GETMASK   0 
+#define DBGCTL_SETMASK   1 
+#define DBGCTL_GETLEVEL  2 
+#define DBGCTL_SETLEVEL  3 
+
+uint64 debugctl(int op, uint64 arg);   /* returns the previous value and sets 
+* the new value; returns -1 on invalid op */ 
+
 /*for holding the current category and level turned on*/
 extern uint64 current_mask;
 extern int current_level;
