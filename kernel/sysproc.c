@@ -7,6 +7,8 @@
 #include "proc.h"
 #include "vm.h"
 
+#include "debug.h" /*added for access to debugctl()*/
+
 uint64
 sys_exit(void)
 {
@@ -109,4 +111,16 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+uint64
+sys_debugctl(void)
+{
+  int operation;
+  uint64 argument;
+
+  argint(0, &operation);
+  argaddr(1, &argument);
+
+  return debugctl(operation, argument);
 }
