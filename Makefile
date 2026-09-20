@@ -1,7 +1,9 @@
 K=kernel
 U=user
 
+# adding debug.o to the build list
 OBJS = \
+  $K/debug.o \
   $K/entry.o \
   $K/start.o \
   $K/console.o \
@@ -67,6 +69,7 @@ CFLAGS = -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb 
 CFLAGS += $(DETFLAGS)
 CFLAGS += -march=rv64gc
 CFLAGS += -std=gnu99
+CFLAGS += -DDEBUG_LOGGING
 CFLAGS += -MD
 CFLAGS += -mcmodel=medany
 CFLAGS += -ffreestanding
