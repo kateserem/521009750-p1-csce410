@@ -37,3 +37,29 @@ int debug_current_pid(void) {
 
     return p->pid; /*return the process ID*/
 }
+
+/*operation: do this operation*/
+/*argument: set to this value*/
+uint64 debugctl(int operation, uint64 argument) {
+    uint64 previous_mask = current_mask; /*store the previous mask value*/
+    int previous_level = current_level; /*store the previous level value*/
+
+    switch(operation) {
+        case DBGCTL_GETMASK: 
+            return current_mask;
+
+        case DBGCTL_SETMASK: 
+            current_mask = argument;
+            return previous_mask;
+
+        case DBGCTL_GETLEVEL: 
+            return current_level;
+
+        case DBGCTL_SETLEVEL:
+            current_level = argument;
+            return previous_level; 
+
+        default:
+            return -1; /*invalid operation*/
+    }
+}
