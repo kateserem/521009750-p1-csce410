@@ -6,6 +6,8 @@
 #include "proc.h"
 #include "defs.h"
 
+#include "debug.h" /*include debug.h for logging*/
+
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
@@ -119,14 +121,24 @@ allocproc(void)
       release(&p->lock);
     }
   }
+  /*log when there are no free processes*/
+  dprintf(DBG_PROC, DBG_WARN, "no free processes available to allocate\n");
+
   return 0;
 
 found:
   p->pid = allocpid();
   p->state = USED;
 
+  /*print statement for logging when a process is created and gives it an id number*/
+  dprintf(DBG_PROC, DBG_INFO, "process created with pid %d\n", p->pid);
+
   // Allocate a trapframe page.
   if ((p->trapframe = (struct trapframe *)kalloc()) == 0) {
+    
+    /*returned zero, meaning unable to allocate trapframe*/
+    dprintf(DBG_PROC, DBG_WARN, "unable to allocate trapframe for pid %d\n", p->pid);
+
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -135,6 +147,10 @@ found:
   // An empty user page table.
   p->pagetable = proc_pagetable(p);
   if (p->pagetable == 0) {
+
+    /*returned zero, meaning unable to allocate pagetable*/
+    dprintf(DBG_PROC, DBG_WARN, "unable to allocate pagetable for pid %d\n", p->pid);
+
     freeproc(p);
     release(&p->lock);
     return 0;
@@ -162,6 +178,10 @@ freeproc(struct proc *p)
     proc_freepagetable(p->pagetable, p->sz);
   p->pagetable = 0;
   p->sz = 0;
+
+  /*add log statement for when a process is freed from memory*/
+  dprintf(DBG_PROC, DBG_INFO, "process freed with pid %d\n", p->pid);
+
   p->pid = 0;
   p->name[0] = 0;
   p->chan = 0;
@@ -223,6 +243,9 @@ userinit(void)
   p = allocproc();
   initproc = p;
 
+  /*log creating the first process*/
+  dprintf(DBG_PROC, DBG_INFO, "created first process with pid %d\n", p->pid);
+
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
@@ -275,6 +298,9 @@ kfork(void)
   }
   np->sz = p->sz;
 
+  /*log fork of child process listing the parent pid, child pid, and its copied size */
+  dprintf(DBG_PROC, DBG_INFO, "parent pid %d forked child pid %d with copied size %lu\n", p->pid, np->pid, np->sz);
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -306,18 +332,24 @@ kfork(void)
 
 // Pass p's abandoned children to init.
 // Caller must hold wait_lock.
-void
+int /*change form void to int*/
 reparent(struct proc *p)
 {
   struct proc *pp;
+  int count = 0; /*keep track of how many children processes are reparented*/
 
   for (pp = proc; pp < &proc[NPROC]; pp++) {
     if (pp->parent == p) {
       pp->parent = initproc;
+
+      count++; /*increment every time a child is reparented*/
+
       wakeup(initproc);
     }
   }
-}
+  return count; /*return the number of children processes that were reparented*/
+  }
+
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
@@ -347,7 +379,7 @@ kexit(int status)
   acquire(&wait_lock);
 
   // Give any children to init.
-  reparent(p);
+  int reparented = reparent(p);
 
   // Parent might be sleeping in wait().
   wakeup(p->parent);
@@ -356,6 +388,9 @@ kexit(int status)
 
   p->xstate = status;
   p->state = ZOMBIE;
+
+  /*log when a process exits, including its pid, exit status, and how many children were reparented to init*/
+  dprintf(DBG_PROC, DBG_INFO, "process with pid %d exited with status %d and reparented %d children\n", p->pid, status, reparented);
 
   release(&wait_lock);
 
@@ -395,6 +430,10 @@ kwait(uint64 addr)
             return -1;
           }
           pp->parent = 0;
+
+          /*log when a child process is reaped by which parent*/
+          dprintf(DBG_PROC, DBG_INFO, "child pid %d reaped by parent pid %d\n", pid, p->pid);
+
           freeproc(pp);
           release(&pp->lock);
           release(&wait_lock);
@@ -450,6 +489,10 @@ scheduler(void)
         // before jumping back to us.
         p->state = RUNNING;
         c->proc = p;
+
+        /*log when context switching to a process*/
+        dprintf(DBG_SCHED, DBG_TRACE, "switching to process with pid %d\n", p->pid);
+
         swtch(&c->context, &p->context);
 
         // Don't re-enable interrupts on release.
@@ -603,6 +646,9 @@ kkill(int pid)
 {
   struct proc *p;
 
+  /*for tracking which process is killing another*/
+  struct proc *killer = myproc();
+
   for (p = proc; p < &proc[NPROC]; p++) {
     acquire(&p->lock);
     if (p->pid == pid) {
@@ -611,11 +657,17 @@ kkill(int pid)
         // Wake process from sleep().
         p->state = RUNNABLE;
       }
+      /*log when a process is killed and who killed it*/
+      dprintf(DBG_PROC, DBG_INFO, "process with pid %d killed process with pid %d\n", killer->pid, p->pid);
+
       release(&p->lock);
       return 0;
+
     }
     release(&p->lock);
   }
+  /*log when target process could not be found to kill*/
+  dprintf(DBG_PROC, DBG_WARN, "process with pid %d could not find the target process with pid %d to kill\n", killer->pid, pid);
   return -1;
 }
 

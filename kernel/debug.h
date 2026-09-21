@@ -45,7 +45,7 @@ int debug_current_pid(void);
 #define dprintf(category, level, format, ...) \
     do { \
         if ((current_mask & category) && (level <= current_level)) { \
-            printf("[%s] [pid %d] [%s]: " format, \
+            printk("[%s] [pid %d] [%s]: " format, \
                 debug_category_value_to_string(category), \
                 debug_current_pid(), \
                 __func__, \

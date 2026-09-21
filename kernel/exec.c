@@ -7,6 +7,8 @@
 #include "defs.h"
 #include "elf.h"
 
+#include "debug.h" /*include debug.h for logging*/
+
 static int loadseg(pde_t *, uint64, struct inode *, uint, uint);
 
 // map ELF permissions to PTE permission bits.
@@ -40,6 +42,9 @@ kexec(char *path, char **argv)
 
   // Open the executable file.
   if ((ip = namei(path)) == 0) {
+    /*returned zero, meaning failed to open file */
+    dprintf(DBG_PROC, DBG_WARN, "exec failed to open file %s\n", path);
+
     end_op();
     return -1;
   }
@@ -133,6 +138,9 @@ kexec(char *path, char **argv)
   oldpagetable = p->pagetable;
   p->pagetable = pagetable;
   p->sz = sz;
+
+  dprintf(DBG_PROC, DBG_INFO, "exec path %s with %lu arguments and size %lu\n", path, argc, sz);
+
   p->trapframe->epc = elf.entry; // initial program counter = ulib.c:start()
   p->trapframe->sp = sp;         // initial stack pointer
   proc_freepagetable(oldpagetable, oldsz);
@@ -140,6 +148,9 @@ kexec(char *path, char **argv)
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
 bad:
+  /*log when exec fails*/
+  dprintf(DBG_PROC, DBG_WARN, "exec failed for path %s\n", path);
+
   if (pagetable)
     proc_freepagetable(pagetable, sz);
   if (ip) {
