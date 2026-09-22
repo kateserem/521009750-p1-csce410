@@ -793,7 +793,7 @@ $
 
 ======== ADDITIONAL TESTS =============================================
 
--------- ADDITIONAL TESTS 1: Swithhing between different category settings -----------------------------
+-------- ADDITIONAL TESTS 1: Switching between different category settings -----------------------------
 
 $ dbg
 mask: 0
@@ -832,7 +832,7 @@ mask: 0
 level: 3
 $ 
 
--------- ADDITIONAL TESTS 2: Swithhing between different level settings -----------------------------
+-------- ADDITIONAL TESTS 2: Switching between different level settings -----------------------------
 
 $ dbg        
 mask: 0
