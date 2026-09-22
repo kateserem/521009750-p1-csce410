@@ -418,6 +418,13 @@ hi
 [sched] [pid 2] [scheduler]: switching to process with pid 2
 $ 
 
+****Explain how you would make this message usable in practice.
+    Since the scheduler can print a lot of information, making it hard to read,
+    filtering by PID would make the printed information more useful by showing
+    only what we want to see
+
+    so implementing a way to filter by PID would make the information more useful
+
 -------- TEST 6:  usertests still passes with the mask at 0. -------------------------------------------------
 
 $ dbg off all 
