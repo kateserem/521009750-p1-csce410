@@ -1,0 +1,999 @@
+CSCE 410 P1 DEMOSTRATION
+
+======== REQUIRED TESTS (AT LEAST) ==========================================================================
+
+-------- TEST 1:  Boot with the mask at 0 -------------------------------------------------------------------
+-------- The kernel boots to a shell with no debug output. --------------------------------------------------
+
+$make qemu
+
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+xv6 kernel is booting
+
+hart 1 starting
+hart 2 starting
+init: starting sh
+$ 
+
+-------- TEST 2: dbg on proc, then run ls and echo hi. -----------------------------------------------------------------------------------------------------
+-------- Show that the fork/exec/exit/wait of each command appears, and that parent and child pids line up.------------------------------------------------
+
+$ dbg on proc
+[proc] [pid 3] [kexit]: process with pid 3 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 3 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 3
+
+$ ls
+[proc] [pid 2] [allocproc]: process created with pid 4
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 4 with copied size 20480
+[proc] [pid 4] [kexec]: exec path ls with 1 arguments and size 16384
+.              1 1 8480
+..             1 1 8480
+README         2 2 2441
+cat            2 3 36808
+echo           2 4 35656
+forktest       2 5 17448
+grep           2 6 40248
+init           2 7 36120
+kill           2 8 35600
+ln             2 9 35392
+ls             2 10 38944
+mkdir          2 11 35640
+rm             2 12 35632
+sh             2 13 58664
+stressfs       2 14 36512
+usertests      2 15 201632
+grind          2 16 52064
+wc             2 17 37800
+zombie         2 18 34992
+logstress      2 19 37576
+forphan        2 20 36400
+dorphan        2 21 35840
+sync           2 22 35056
+dbg            2 23 41392
+console        3 24 0
+stopforking    2 25 0
+x              2 26 1
+bigarg-ok      2 27 0
+[proc] [pid 4] [kexit]: process with pid 4 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 4 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 4
+
+$ echo hi
+[proc] [pid 2] [allocproc]: process created with pid 5
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 5 with copied size 20480
+[proc] [pid 5] [kexec]: exec path echo with 2 arguments and size 16384
+hi
+[proc] [pid 5] [kexit]: process with pid 5 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 5 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 5
+$ 
+
+-------- TEST 3:  Run a program that forks a small tree of processes --------------------------------------
+-------- (write one or use forktest) and show that every created pid is eventually ------------------------
+-------- reported as exited and freed. No leaks, no double-frees. -----------------------------------------
+
+$ forktest
+[proc] [pid 2] [allocproc]: process created with pid 7
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 7 with copied size 20480
+[proc] [pid 7] [kexec]: exec path forktest with 1 arguments and size 12288
+fork test
+[proc] [pid 7] [allocproc]: process created with pid 8
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 8 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 9
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 9 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 10
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 10 with copied size 12288
+[proc] [pid 9] [kexit]: process with pid 9 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 11
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 11 with copied size 12288
+[proc] [pid 10] [kexit]: process with pid 10 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 12
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 12 with copied size 12288
+[proc] [pid 8] [kexit]: process with pid 8 exited with status 0 and reparented 0 children
+[proc] [pid 11] [kexit]: process with pid 11 exited with status 0 and reparented 0 children
+[proc] [pid 12] [kexit]: process with pid 12 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 13
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 13 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 14
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 14 with copied size 12288
+[proc] [pid 13] [kexit]: process with pid 13 exited with status 0 and reparented 0 children
+[proc] [pid 14] [kexit]: process with pid 14 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 15
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 15 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 16
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 16 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 17
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 17 with copied size 12288
+[proc] [pid 16] [kexit]: process with pid 16 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 18
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 18 with copied size 12288
+[proc] [pid 17] [kexit]: process with pid 17 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 19
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 19 with copied size 12288
+[proc] [pid 18] [kexit]: process with pid 18 exited with status 0 and reparented 0 children
+[proc] [pid 15] [kexit]: process with pid 15 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 20
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 20 with copied size 12288
+[proc] [pid 19] [kexit]: process with pid 19 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 21
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 21 with copied size 12288
+[proc] [pid 20] [kexit]: process with pid 20 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 22
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 22 with copied size 12288
+[proc] [pid 21] [kexit]: process with pid 21 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 23
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 23 with copied size 12288
+[proc] [pid 22] [kexit]: process with pid 22 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 24
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 24 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 25
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 25 with copied size 12288
+[proc] [pid 23] [kexit]: process with pid 23 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 26
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 26 with copied size 12288
+[proc] [pid 25] [kexit]: process with pid 25 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 27
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 27 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 28
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 28 with copied size 12288
+[proc] [pid 24] [kexit]: process with pid 24 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 29
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 29 with copied size 12288
+[proc] [pid 27] [kexit]: process with pid 27 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 30
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 30 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 31
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 31 with copied size 12288
+[proc] [pid 28] [kexit]: process with pid 28 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 32
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 32 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 33
+[proc] [pid 29] [kexit]: process with pid 29 exited with status 0 and reparented 0 children
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 33 with copied size 12288
+[proc] [pid 26] [kexit]: process with pid 26 exited with status 0 and reparented 0 children
+[proc] [pid 30] [kexit]: process with pid 30 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 34
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 34 with copied size 12288
+[proc] [pid 32] [kexit]: process with pid 32 exited with status 0 and reparented 0 children
+[proc] [pid 31] [kexit]: process with pid 31 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 35
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 35 with copied size 12288
+[proc] [pid 33] [kexit]: process with pid 33 exited with status 0 and reparented 0 children
+[proc] [pid 34] [kexit]: process with pid 34 exited with status 0 and reparented 0 children
+[proc] [pid 35] [kexit]: process with pid 35 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 36
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 36 with copied size 12288
+[proc] [pid 36] [kexit]: process with pid 36 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 37
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 37 with copied size 12288
+[proc] [pid 37] [kexit]: process with pid 37 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 38
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 38 with copied size 12288
+[proc] [pid 38] [kexit]: process with pid 38 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 39
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 39 with copied size 12288
+[proc] [pid 39] [kexit]: process with pid 39 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 40
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 40 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 41
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 41 with copied size 12288
+[proc] [pid 40] [kexit]: process with pid 40 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 42
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 42 with copied size 12288
+[proc] [pid 41] [kexit]: process with pid 41 exited with status 0 and reparented 0 children
+[proc] [pid 42] [kexit]: process with pid 42 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 43
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 43 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 44
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 44 with copied size 12288
+[proc] [pid 43] [kexit]: process with pid 43 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 45
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 45 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 46
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 46 with copied size 12288
+[proc] [pid 45] [kexit]: process with pid 45 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 47
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 47 with copied size 12288
+[proc] [pid 44] [kexit]: process with pid 44 exited with status 0 and reparented 0 children
+[proc] [pid 47] [kexit]: process with pid 47 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 48
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 48 with copied size 12288
+[proc] [pid 46] [kexit]: process with pid 46 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 49
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 49 with copied size 12288
+[proc] [pid 48] [kexit]: process with pid 48 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 50
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 50 with copied size 12288
+[proc] [pid 49] [kexit]: process with pid 49 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 51
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 51 with copied size 12288
+[proc] [pid 50] [kexit]: process with pid 50 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 52
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 52 with copied size 12288
+[proc] [pid 51] [kexit]: process with pid 51 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 53
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 53 with copied size 12288
+[proc] [pid 52] [kexit]: process with pid 52 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 54
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 54 with copied size 12288
+[proc] [pid 53] [kexit]: process with pid 53 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 55
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 55 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 56
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 56 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 57
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 57 with copied size 12288
+[proc] [pid 55] [kexit]: process with pid 55 exited with status 0 and reparented 0 children
+[proc] [pid 54] [kexit]: process with pid 54 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 58
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 58 with copied size 12288
+[proc] [pid 57] [kexit]: process with pid 57 exited with status 0 and reparented 0 children
+[proc] [pid 56] [kexit]: process with pid 56 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 59
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 59 with copied size 12288
+[proc] [pid 58] [kexit]: process with pid 58 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 60
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 60 with copied size 12288
+[proc] [pid 59] [kexit]: process with pid 59 exited with status 0 and reparented 0 children
+[proc] [pid 60] [kexit]: process with pid 60 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 61
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 61 with copied size 12288
+[proc] [pid 61] [kexit]: process with pid 61 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 62
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 62 with copied size 12288
+[proc] [pid 62] [kexit]: process with pid 62 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 63
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 63 with copied size 12288
+[proc] [pid 63] [kexit]: process with pid 63 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 64
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 64 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 65
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 65 with copied size 12288
+[proc] [pid 64] [kexit]: process with pid 64 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 66
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 66 with copied size 12288
+[proc] [pid 7] [allocproc]: process created with pid 67
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 67 with copied size 12288
+[proc] [pid 66] [kexit]: process with pid 66 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: process created with pid 68
+[proc] [pid 7] [kfork]: parent pid 7 forked child pid 68 with copied size 12288
+[proc] [pid 65] [kexit]: process with pid 65 exited with status 0 and reparented 0 children
+[proc] [pid 7] [allocproc]: no free processes available to allocate
+[proc] [pid 67] [kexit]: process with pid 67 exited with status 0 and reparented 0 children
+[proc] [pid 7] [kwait]: child pid 8 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 8
+[proc] [pid 68] [kexit]: process with pid 68 exited with status 0 and reparented 0 children
+[proc] [pid 7] [kwait]: child pid 9 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 9
+[proc] [pid 7] [kwait]: child pid 10 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 10
+[proc] [pid 7] [kwait]: child pid 11 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 11
+[proc] [pid 7] [kwait]: child pid 12 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 12
+[proc] [pid 7] [kwait]: child pid 13 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 13
+[proc] [pid 7] [kwait]: child pid 14 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 14
+[proc] [pid 7] [kwait]: child pid 15 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 15
+[proc] [pid 7] [kwait]: child pid 16 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 16
+[proc] [pid 7] [kwait]: child pid 17 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 17
+[proc] [pid 7] [kwait]: child pid 18 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 18
+[proc] [pid 7] [kwait]: child pid 19 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 19
+[proc] [pid 7] [kwait]: child pid 20 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 20
+[proc] [pid 7] [kwait]: child pid 21 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 21
+[proc] [pid 7] [kwait]: child pid 22 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 22
+[proc] [pid 7] [kwait]: child pid 23 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 23
+[proc] [pid 7] [kwait]: child pid 24 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 24
+[proc] [pid 7] [kwait]: child pid 25 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 25
+[proc] [pid 7] [kwait]: child pid 26 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 26
+[proc] [pid 7] [kwait]: child pid 27 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 27
+[proc] [pid 7] [kwait]: child pid 28 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 28
+[proc] [pid 7] [kwait]: child pid 29 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 29
+[proc] [pid 7] [kwait]: child pid 30 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 30
+[proc] [pid 7] [kwait]: child pid 31 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 31
+[proc] [pid 7] [kwait]: child pid 32 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 32
+[proc] [pid 7] [kwait]: child pid 33 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 33
+[proc] [pid 7] [kwait]: child pid 34 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 34
+[proc] [pid 7] [kwait]: child pid 35 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 35
+[proc] [pid 7] [kwait]: child pid 36 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 36
+[proc] [pid 7] [kwait]: child pid 37 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 37
+[proc] [pid 7] [kwait]: child pid 38 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 38
+[proc] [pid 7] [kwait]: child pid 39 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 39
+[proc] [pid 7] [kwait]: child pid 40 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 40
+[proc] [pid 7] [kwait]: child pid 41 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 41
+[proc] [pid 7] [kwait]: child pid 42 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 42
+[proc] [pid 7] [kwait]: child pid 43 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 43
+[proc] [pid 7] [kwait]: child pid 44 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 44
+[proc] [pid 7] [kwait]: child pid 45 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 45
+[proc] [pid 7] [kwait]: child pid 46 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 46
+[proc] [pid 7] [kwait]: child pid 47 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 47
+[proc] [pid 7] [kwait]: child pid 48 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 48
+[proc] [pid 7] [kwait]: child pid 49 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 49
+[proc] [pid 7] [kwait]: child pid 50 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 50
+[proc] [pid 7] [kwait]: child pid 51 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 51
+[proc] [pid 7] [kwait]: child pid 52 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 52
+[proc] [pid 7] [kwait]: child pid 53 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 53
+[proc] [pid 7] [kwait]: child pid 54 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 54
+[proc] [pid 7] [kwait]: child pid 55 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 55
+[proc] [pid 7] [kwait]: child pid 56 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 56
+[proc] [pid 7] [kwait]: child pid 57 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 57
+[proc] [pid 7] [kwait]: child pid 58 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 58
+[proc] [pid 7] [kwait]: child pid 59 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 59
+[proc] [pid 7] [kwait]: child pid 60 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 60
+[proc] [pid 7] [kwait]: child pid 61 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 61
+[proc] [pid 7] [kwait]: child pid 62 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 62
+[proc] [pid 7] [kwait]: child pid 63 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 63
+[proc] [pid 7] [kwait]: child pid 64 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 64
+[proc] [pid 7] [kwait]: child pid 65 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 65
+[proc] [pid 7] [kwait]: child pid 66 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 66
+[proc] [pid 7] [kwait]: child pid 67 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 67
+[proc] [pid 7] [kwait]: child pid 68 reaped by parent pid 7
+[proc] [pid 7] [freeproc]: process freed with pid 68
+fork test OK
+[proc] [pid 7] [kexit]: process with pid 7 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 7 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 7
+$ 
+
+-------- TEST 4: dbg off all, rerun the same workload, and show silence. --------------------------------------
+
+$ dbg off all
+[proc] [pid 2] [allocproc]: process created with pid 69
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 69 with copied size 20480
+[proc] [pid 69] [kexec]: exec path dbg with 3 arguments and size 16384
+
+$ forktest
+fork test
+fork test OK
+$ 
+
+-------- TEST 5: dbg on sched, run one command, and show what happens. ------------------------------------------------------------
+-------- Add a section to your report where you explain how you would make this message usable in practice. ------------------------
+
+$ dbg on sched
+
+$ dbg level trace
+[sched] [pid 2] [scheduler]: switching to process with pid 2
+
+$ echo hi
+[sched] [pid 2] [scheduler]: switching to process with pid 2
+[sched] [pid 134] [scheduler]: switching to process with pid 134
+hi
+[sched] [pid 2] [scheduler]: switching to process with pid 2
+$ 
+
+-------- TEST 6:  usertests still passes with the mask at 0. -------------------------------------------------
+
+$ dbg off all 
+$ dbg level info
+$ usertests 
+usertests starting
+test copyin: OK
+test copyout: OK
+test copyinstr1: OK
+test copyinstr2: OK
+test copyinstr3: OK
+test rwsbrk: OK
+test truncate1: OK
+test truncate2: OK
+test truncate3: OK
+test openiput: OK
+test exitiput: OK
+test iput: OK
+test opentest: OK
+test writetest: OK
+test writebig: OK
+test createtest: OK
+test dirtest: OK
+test exectest: OK
+test pipe1: OK
+test killstatus: OK
+test preempt: kill... wait... OK
+test exitwait: OK
+test reparent: OK
+test twochildren: OK
+test forkfork: OK
+test forkforkfork: OK
+test reparent2: OK
+test mem: OK
+test sharedfd: OK
+test fourfiles: OK
+test createdelete: OK
+test unlinkread: OK
+test linktest: OK
+test concreate: OK
+test linkunlink: OK
+test subdir: OK
+test bigwrite: OK
+test bigfile: OK
+test fourteen: OK
+test rmdot: OK
+test dirfile: OK
+test iref: OK
+test forktest: OK
+test sbrkbasic: OK
+test sbrkmuch: OK
+test kernmem: usertrap(): unexpected scause 0xd pid=6613
+            sepc=0x1a86 stval=0x80000000
+usertrap(): unexpected scause 0xd pid=6614
+            sepc=0x1a86 stval=0x8000c350
+usertrap(): unexpected scause 0xd pid=6615
+            sepc=0x1a86 stval=0x800186a0
+usertrap(): unexpected scause 0xd pid=6616
+            sepc=0x1a86 stval=0x800249f0
+usertrap(): unexpected scause 0xd pid=6617
+            sepc=0x1a86 stval=0x80030d40
+usertrap(): unexpected scause 0xd pid=6618
+            sepc=0x1a86 stval=0x8003d090
+usertrap(): unexpected scause 0xd pid=6619
+            sepc=0x1a86 stval=0x800493e0
+usertrap(): unexpected scause 0xd pid=6620
+            sepc=0x1a86 stval=0x80055730
+usertrap(): unexpected scause 0xd pid=6621
+            sepc=0x1a86 stval=0x80061a80
+usertrap(): unexpected scause 0xd pid=6622
+            sepc=0x1a86 stval=0x8006ddd0
+usertrap(): unexpected scause 0xd pid=6623
+            sepc=0x1a86 stval=0x8007a120
+usertrap(): unexpected scause 0xd pid=6624
+            sepc=0x1a86 stval=0x80086470
+usertrap(): unexpected scause 0xd pid=6625
+            sepc=0x1a86 stval=0x800927c0
+usertrap(): unexpected scause 0xd pid=6626
+            sepc=0x1a86 stval=0x8009eb10
+usertrap(): unexpected scause 0xd pid=6627
+            sepc=0x1a86 stval=0x800aae60
+usertrap(): unexpected scause 0xd pid=6628
+            sepc=0x1a86 stval=0x800b71b0
+usertrap(): unexpected scause 0xd pid=6629
+            sepc=0x1a86 stval=0x800c3500
+usertrap(): unexpected scause 0xd pid=6630
+            sepc=0x1a86 stval=0x800cf850
+usertrap(): unexpected scause 0xd pid=6631
+            sepc=0x1a86 stval=0x800dbba0
+usertrap(): unexpected scause 0xd pid=6632
+            sepc=0x1a86 stval=0x800e7ef0
+usertrap(): unexpected scause 0xd pid=6633
+            sepc=0x1a86 stval=0x800f4240
+usertrap(): unexpected scause 0xd pid=6634
+            sepc=0x1a86 stval=0x80100590
+usertrap(): unexpected scause 0xd pid=6635
+            sepc=0x1a86 stval=0x8010c8e0
+usertrap(): unexpected scause 0xd pid=6636
+            sepc=0x1a86 stval=0x80118c30
+usertrap(): unexpected scause 0xd pid=6637
+            sepc=0x1a86 stval=0x80124f80
+usertrap(): unexpected scause 0xd pid=6638
+            sepc=0x1a86 stval=0x801312d0
+usertrap(): unexpected scause 0xd pid=6639
+            sepc=0x1a86 stval=0x8013d620
+usertrap(): unexpected scause 0xd pid=6640
+            sepc=0x1a86 stval=0x80149970
+usertrap(): unexpected scause 0xd pid=6641
+            sepc=0x1a86 stval=0x80155cc0
+usertrap(): unexpected scause 0xd pid=6642
+            sepc=0x1a86 stval=0x80162010
+usertrap(): unexpected scause 0xd pid=6643
+            sepc=0x1a86 stval=0x8016e360
+usertrap(): unexpected scause 0xd pid=6644
+            sepc=0x1a86 stval=0x8017a6b0
+usertrap(): unexpected scause 0xd pid=6645
+            sepc=0x1a86 stval=0x80186a00
+usertrap(): unexpected scause 0xd pid=6646
+            sepc=0x1a86 stval=0x80192d50
+usertrap(): unexpected scause 0xd pid=6647
+            sepc=0x1a86 stval=0x8019f0a0
+usertrap(): unexpected scause 0xd pid=6648
+            sepc=0x1a86 stval=0x801ab3f0
+usertrap(): unexpected scause 0xd pid=6649
+            sepc=0x1a86 stval=0x801b7740
+usertrap(): unexpected scause 0xd pid=6650
+            sepc=0x1a86 stval=0x801c3a90
+usertrap(): unexpected scause 0xd pid=6651
+            sepc=0x1a86 stval=0x801cfde0
+usertrap(): unexpected scause 0xd pid=6652
+            sepc=0x1a86 stval=0x801dc130
+OK
+test MAXVAplus: usertrap(): unexpected scause 0xf pid=6654
+            sepc=0x1b16 stval=0x4000000000
+usertrap(): unexpected scause 0xf pid=6655
+            sepc=0x1b16 stval=0x8000000000
+usertrap(): unexpected scause 0xf pid=6656
+            sepc=0x1b16 stval=0x10000000000
+usertrap(): unexpected scause 0xf pid=6657
+            sepc=0x1b16 stval=0x20000000000
+usertrap(): unexpected scause 0xf pid=6658
+            sepc=0x1b16 stval=0x40000000000
+usertrap(): unexpected scause 0xf pid=6659
+            sepc=0x1b16 stval=0x80000000000
+usertrap(): unexpected scause 0xf pid=6660
+            sepc=0x1b16 stval=0x100000000000
+usertrap(): unexpected scause 0xf pid=6661
+            sepc=0x1b16 stval=0x200000000000
+usertrap(): unexpected scause 0xf pid=6662
+            sepc=0x1b16 stval=0x400000000000
+usertrap(): unexpected scause 0xf pid=6663
+            sepc=0x1b16 stval=0x800000000000
+usertrap(): unexpected scause 0xf pid=6664
+            sepc=0x1b16 stval=0x1000000000000
+usertrap(): unexpected scause 0xf pid=6665
+            sepc=0x1b16 stval=0x2000000000000
+usertrap(): unexpected scause 0xf pid=6666
+            sepc=0x1b16 stval=0x4000000000000
+usertrap(): unexpected scause 0xf pid=6667
+            sepc=0x1b16 stval=0x8000000000000
+usertrap(): unexpected scause 0xf pid=6668
+            sepc=0x1b16 stval=0x10000000000000
+usertrap(): unexpected scause 0xf pid=6669
+            sepc=0x1b16 stval=0x20000000000000
+usertrap(): unexpected scause 0xf pid=6670
+            sepc=0x1b16 stval=0x40000000000000
+usertrap(): unexpected scause 0xf pid=6671
+            sepc=0x1b16 stval=0x80000000000000
+usertrap(): unexpected scause 0xf pid=6672
+            sepc=0x1b16 stval=0x100000000000000
+usertrap(): unexpected scause 0xf pid=6673
+            sepc=0x1b16 stval=0x200000000000000
+usertrap(): unexpected scause 0xf pid=6674
+            sepc=0x1b16 stval=0x400000000000000
+usertrap(): unexpected scause 0xf pid=6675
+            sepc=0x1b16 stval=0x800000000000000
+usertrap(): unexpected scause 0xf pid=6676
+            sepc=0x1b16 stval=0x1000000000000000
+usertrap(): unexpected scause 0xf pid=6677
+            sepc=0x1b16 stval=0x2000000000000000
+usertrap(): unexpected scause 0xf pid=6678
+            sepc=0x1b16 stval=0x4000000000000000
+usertrap(): unexpected scause 0xf pid=6679
+            sepc=0x1b16 stval=0x8000000000000000
+OK
+test sbrkfail: OK
+test sbrkarg: OK
+test validatetest: OK
+test bsstest: OK
+test bigargtest: OK
+test argptest: OK
+test stacktest: usertrap(): unexpected scause 0xd pid=6699
+            sepc=0x1b6a stval=0x10ea0
+OK
+test nowrite: usertrap(): unexpected scause 0xf pid=6701
+            sepc=0x1c10 stval=0x0
+usertrap(): unexpected scause 0xf pid=6702
+            sepc=0x1c10 stval=0x80000000
+usertrap(): unexpected scause 0xf pid=6703
+            sepc=0x1c10 stval=0x3fffffe000
+usertrap(): unexpected scause 0xf pid=6704
+            sepc=0x1c10 stval=0x3ffffff000
+usertrap(): unexpected scause 0xf pid=6705
+            sepc=0x1c10 stval=0x4000000000
+usertrap(): unexpected scause 0xf pid=6706
+            sepc=0x1c10 stval=0xffffffffffffffff
+OK
+test pgbug: OK
+test sbrkbugs: usertrap(): unexpected scause 0xc pid=6709
+            sepc=0x54ca stval=0x54ca
+usertrap(): unexpected scause 0xc pid=6710
+            sepc=0x54ca stval=0x54ca
+usertrap(): unexpected scause 0xd pid=6711
+            sepc=0x5416 stval=0x11eb8
+OK
+test sbrklast: OK
+test sbrk8000: OK
+test badarg: OK
+test lazy_alloc: OK
+test lazy_unmap: usertrap(): unexpected scause 0xf pid=6717
+            sepc=0x480e stval=0x13000
+usertrap(): unexpected scause 0xf pid=6718
+            sepc=0x480e stval=0x1013000
+usertrap(): unexpected scause 0xf pid=6719
+            sepc=0x480e stval=0x2013000
+usertrap(): unexpected scause 0xf pid=6720
+            sepc=0x480e stval=0x3013000
+usertrap(): unexpected scause 0xf pid=6721
+            sepc=0x480e stval=0x4013000
+usertrap(): unexpected scause 0xf pid=6722
+            sepc=0x480e stval=0x5013000
+usertrap(): unexpected scause 0xf pid=6723
+            sepc=0x480e stval=0x6013000
+usertrap(): unexpected scause 0xf pid=6724
+            sepc=0x480e stval=0x7013000
+usertrap(): unexpected scause 0xf pid=6725
+            sepc=0x480e stval=0x8013000
+usertrap(): unexpected scause 0xf pid=6726
+            sepc=0x480e stval=0x9013000
+usertrap(): unexpected scause 0xf pid=6727
+            sepc=0x480e stval=0xa013000
+usertrap(): unexpected scause 0xf pid=6728
+            sepc=0x480e stval=0xb013000
+usertrap(): unexpected scause 0xf pid=6729
+            sepc=0x480e stval=0xc013000
+usertrap(): unexpected scause 0xf pid=6730
+            sepc=0x480e stval=0xd013000
+usertrap(): unexpected scause 0xf pid=6731
+            sepc=0x480e stval=0xe013000
+usertrap(): unexpected scause 0xf pid=6732
+            sepc=0x480e stval=0xf013000
+usertrap(): unexpected scause 0xf pid=6733
+            sepc=0x480e stval=0x10013000
+usertrap(): unexpected scause 0xf pid=6734
+            sepc=0x480e stval=0x11013000
+usertrap(): unexpected scause 0xf pid=6735
+            sepc=0x480e stval=0x12013000
+usertrap(): unexpected scause 0xf pid=6736
+            sepc=0x480e stval=0x13013000
+usertrap(): unexpected scause 0xf pid=6737
+            sepc=0x480e stval=0x14013000
+usertrap(): unexpected scause 0xf pid=6738
+            sepc=0x480e stval=0x15013000
+usertrap(): unexpected scause 0xf pid=6739
+            sepc=0x480e stval=0x16013000
+usertrap(): unexpected scause 0xf pid=6740
+            sepc=0x480e stval=0x17013000
+usertrap(): unexpected scause 0xf pid=6741
+            sepc=0x480e stval=0x18013000
+usertrap(): unexpected scause 0xf pid=6742
+            sepc=0x480e stval=0x19013000
+usertrap(): unexpected scause 0xf pid=6743
+            sepc=0x480e stval=0x1a013000
+usertrap(): unexpected scause 0xf pid=6744
+            sepc=0x480e stval=0x1b013000
+usertrap(): unexpected scause 0xf pid=6745
+            sepc=0x480e stval=0x1c013000
+usertrap(): unexpected scause 0xf pid=6746
+            sepc=0x480e stval=0x1d013000
+usertrap(): unexpected scause 0xf pid=6747
+            sepc=0x480e stval=0x1e013000
+usertrap(): unexpected scause 0xf pid=6748
+            sepc=0x480e stval=0x1f013000
+usertrap(): unexpected scause 0xf pid=6749
+            sepc=0x480e stval=0x20013000
+usertrap(): unexpected scause 0xf pid=6750
+            sepc=0x480e stval=0x21013000
+usertrap(): unexpected scause 0xf pid=6751
+            sepc=0x480e stval=0x22013000
+usertrap(): unexpected scause 0xf pid=6752
+            sepc=0x480e stval=0x23013000
+usertrap(): unexpected scause 0xf pid=6753
+            sepc=0x480e stval=0x24013000
+usertrap(): unexpected scause 0xf pid=6754
+            sepc=0x480e stval=0x25013000
+usertrap(): unexpected scause 0xf pid=6755
+            sepc=0x480e stval=0x26013000
+usertrap(): unexpected scause 0xf pid=6756
+            sepc=0x480e stval=0x27013000
+usertrap(): unexpected scause 0xf pid=6757
+            sepc=0x480e stval=0x28013000
+usertrap(): unexpected scause 0xf pid=6758
+            sepc=0x480e stval=0x29013000
+usertrap(): unexpected scause 0xf pid=6759
+            sepc=0x480e stval=0x2a013000
+usertrap(): unexpected scause 0xf pid=6760
+            sepc=0x480e stval=0x2b013000
+usertrap(): unexpected scause 0xf pid=6761
+            sepc=0x480e stval=0x2c013000
+usertrap(): unexpected scause 0xf pid=6762
+            sepc=0x480e stval=0x2d013000
+usertrap(): unexpected scause 0xf pid=6763
+            sepc=0x480e stval=0x2e013000
+usertrap(): unexpected scause 0xf pid=6764
+            sepc=0x480e stval=0x2f013000
+usertrap(): unexpected scause 0xf pid=6765
+            sepc=0x480e stval=0x30013000
+usertrap(): unexpected scause 0xf pid=6766
+            sepc=0x480e stval=0x31013000
+usertrap(): unexpected scause 0xf pid=6767
+            sepc=0x480e stval=0x32013000
+usertrap(): unexpected scause 0xf pid=6768
+            sepc=0x480e stval=0x33013000
+usertrap(): unexpected scause 0xf pid=6769
+            sepc=0x480e stval=0x34013000
+usertrap(): unexpected scause 0xf pid=6770
+            sepc=0x480e stval=0x35013000
+usertrap(): unexpected scause 0xf pid=6771
+            sepc=0x480e stval=0x36013000
+usertrap(): unexpected scause 0xf pid=6772
+            sepc=0x480e stval=0x37013000
+usertrap(): unexpected scause 0xf pid=6773
+            sepc=0x480e stval=0x38013000
+usertrap(): unexpected scause 0xf pid=6774
+            sepc=0x480e stval=0x39013000
+usertrap(): unexpected scause 0xf pid=6775
+            sepc=0x480e stval=0x3a013000
+usertrap(): unexpected scause 0xf pid=6776
+            sepc=0x480e stval=0x3b013000
+usertrap(): unexpected scause 0xf pid=6777
+            sepc=0x480e stval=0x3c013000
+usertrap(): unexpected scause 0xf pid=6778
+            sepc=0x480e stval=0x3d013000
+usertrap(): unexpected scause 0xf pid=6779
+            sepc=0x480e stval=0x3e013000
+usertrap(): unexpected scause 0xf pid=6780
+            sepc=0x480e stval=0x3f013000
+OK
+test lazy_copy: OK
+test lazy_copyinstr: OK
+test lazy_sbrk: OK
+test partial_write: OK
+test unlinkcwd: OK
+usertests slow tests starting
+test bigdir: OK
+test manywrites: OK
+test badwrite: OK
+test execout: OK
+test diskfull: balloc: out of blocks
+balloc: out of blocks
+OK
+test outofinodes: ialloc: no inodes
+OK
+ALL TESTS PASSED
+$ 
+
+======== ADDITIONAL TESTS =============================================
+
+-------- ADDITIONAL TESTS 1: Swithhing between different category settings -----------------------------
+
+$ dbg
+mask: 0
+level: 3
+
+$ dbg on proc sched
+[proc] [pid 6823] [kexit]: process with pid 6823 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6823 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6823
+
+$ dbg off proc
+[proc] [pid 2] [allocproc]: process created with pid 6824
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6824 with copied size 20480
+[proc] [pid 6824] [kexec]: exec path dbg with 3 arguments and size 16384
+
+$ dbg
+mask: 2
+level: 3
+
+$ dbg only vm fs
+
+$ dbg
+mask: 48
+level: 3
+
+$ dbg only dev
+
+$ dbg
+mask: 64
+level: 3
+
+$ dbg off all
+
+$ dbg
+mask: 0
+level: 3
+$ 
+
+-------- ADDITIONAL TESTS 2: Swithhing between different level settings -----------------------------
+
+$ dbg        
+mask: 0
+level: 3
+
+$ dbg level err
+
+$ dbg
+mask: 0
+level: 1
+
+$ dbg level warn
+
+$ dbg
+mask: 0
+level: 2
+
+$ dbg level info
+
+$ dbg
+mask: 0
+level: 3
+
+$ dbg level trace
+
+$ dbg
+mask: 0
+level: 4
+
+$ dbg level info
+
+$ dbg
+mask: 0
+level: 3
+$ 
+
+-------- ADDITIONAL TESTS 3: Invalid command inputs -----------------------------
+
+$ dbg
+mask: 0
+level: 3
+
+$ dbg on badinput
+Invalid category: badinput
+
+$ dbg off badinput
+Invalid category: badinput
+
+$ dbg only badinput
+Invalid category: badinput
+
+$ dbg level badinput
+Invalid level: badinput
+
+$ dbg
+mask: 0
+level: 3
+$ 
+
+-------- ADDITIONAL TESTS 4: Testing commands that does not exist -----------------------------
+
+$ dbg on proc
+[proc] [pid 6850] [kexit]: process with pid 6850 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6850 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6850
+
+$ badcommand
+[proc] [pid 2] [allocproc]: process created with pid 6851
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6851 with copied size 20480
+[proc] [pid 6851] [kexec]: exec failed to open file badcommand
+exec badcommand failed
+[proc] [pid 6851] [kexit]: process with pid 6851 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6851 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6851
+$ 
+
+$ kill 99999
+[proc] [pid 2] [allocproc]: process created with pid 6852
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6852 with copied size 20480
+[proc] [pid 6852] [kexec]: exec path kill with 2 arguments and size 16384
+[proc] [pid 6852] [kkill]: process with pid 6852 could not find the target process with pid 99999 to kill
+[proc] [pid 6852] [kexit]: process with pid 6852 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6852 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6852
+$ 
+
+-------- ADDITIONAL TESTS 5: Turning dbg categories off and on -----------------------------
+
+$ dbg
+mask: 0
+level: 3
+
+$ dbg off all
+
+$ dbg
+mask: 0
+level: 3
+
+$ dbg on all
+[proc] [pid 6857] [kexit]: process with pid 6857 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6857 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6857
+
+$ dbg
+[proc] [pid 2] [allocproc]: process created with pid 6858
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6858 with copied size 20480
+[proc] [pid 6858] [kexec]: exec path dbg with 1 arguments and size 16384
+mask: 18446744073709551615
+level: 3
+[proc] [pid 6858] [kexit]: process with pid 6858 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6858 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6858
+
+$ dbg off all
+[proc] [pid 2] [allocproc]: process created with pid 6859
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6859 with copied size 20480
+[proc] [pid 6859] [kexec]: exec path dbg with 3 arguments and size 16384
+
+$ dbg
+mask: 0
+level: 3
+$ 
+
+-------- ADDITIONAL TESTS 5: Invalid arguments -----------------------------
+
+$ dbg
+mask: 0
+level: 3
+
+$ dbg on
+dbg requires at least one category to turn on
+
+$ dbg off
+dbg requires at least one category to turn off
+
+$ dbg only
+dbg requires at least one category to turn on
+
+$ dbg level
+dbg requires exactly one level to set
+
+$ dbg level invalid_level
+Invalid level: invalid_level
+
+$ dbg level info trace
+dbg requires exactly one level to set
+
+$ dbg on proc sched vm
+[proc] [pid 6873] [kexit]: process with pid 6873 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6873 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6873
+
+$ dbg
+[proc] [pid 2] [allocproc]: process created with pid 6874
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6874 with copied size 20480
+[proc] [pid 6874] [kexec]: exec path dbg with 1 arguments and size 16384
+mask: 19
+level: 3
+[proc] [pid 6874] [kexit]: process with pid 6874 exited with status 0 and reparented 0 children
+[proc] [pid 2] [kwait]: child pid 6874 reaped by parent pid 2
+[proc] [pid 2] [freeproc]: process freed with pid 6874
+
+$ dbg off all
+[proc] [pid 2] [allocproc]: process created with pid 6875
+[proc] [pid 2] [kfork]: parent pid 2 forked child pid 6875 with copied size 20480
+[proc] [pid 6875] [kexec]: exec path dbg with 3 arguments and size 16384
+
+$ dbg
+mask: 0
+level: 3
+$ 
